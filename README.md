@@ -28,9 +28,10 @@ Read more about Split here: [split invocation]
 
 ### Upload to S3
 The steps are:
-* Create a multipart file
-* Upload each part
-* Complete the upload
+1. Create a multipart file
+2. Upload each part
+3. Complete the upload
+
 Based on this link: [s3 multipart upload]
 
 * In order to create the multipart file, run:
