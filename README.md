@@ -50,6 +50,23 @@ So, for each file upload, increase the `--part-number`.
 The output should be an ETag.
 
 * Then complete the multipart upload
+`aws s3api complete-multipart-upload --multipart-upload file://mpustruct --bucket BUCKET-NAME --key 'FINAL-REJOINED-FILE-KEY' --profile personal --upload-id THAT BIG ID FROM THE PREVIOUS COMMAND`
+The `--multipart-upload file://mpustruct` points to a file in your local folder that contains the multipart upload struct in the following format:
+```
+{
+  "Parts": [
+    {
+      "ETag": "THE ETAG FROM upload-part PART-NUMBER 1",
+      "PartNumber": 1
+    },
+    {
+      "ETag": "THE ETAG FROM upload-part PART-NUMBER 2",
+      "PartNumber": 2
+    },
+    ...
+  ]
+}
+```
 
 [split invocation]: https://www.gnu.org/software/coreutils/manual/html_node/split-invocation.html#split-invocation
 [s3 multipart upload]: https://aws.amazon.com/blogs/aws/amazon-s3-multipart-upload/
