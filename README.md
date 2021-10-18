@@ -69,5 +69,106 @@ The `--multipart-upload file://mpustruct` points to a file in your local folder 
 }
 ```
 
+## Create an image
+### Create role and policy
+To import an image into AMI you will need a role named `vmimport` and a policy to allow that role to import/export images.
+
+1. To create the role, create a file named `trust-policy.json` into your local with the following content:
+```
+{
+   "Version": "2012-10-17",
+   "Statement": [
+      {
+         "Effect": "Allow",
+         "Principal": { "Service": "vmie.amazonaws.com" },
+         "Action": "sts:AssumeRole",
+         "Condition": {
+            "StringEquals":{
+               "sts:Externalid": "vmimport"
+            }
+         }
+      }
+   ]
+}
+```
+Then create the role running the following command:
+`aws iam create-role --role-name vmimport --assume-role-policy-document "file://trust-policy.json"`
+
+2. To create the policy, create a file named `role-policy.json` into your local with the following content:
+   * Attention to `YOUR-BUCKET-HERE` which is the bucket you have uploaded your image to on the previous steps.
+   * This policy allows to export the image to a separated bucket if you want to. You probably are not interested on exporting your image right now.
+```
+{
+   "Version":"2012-10-17",
+   "Statement":[
+      {
+         "Effect": "Allow",
+         "Action": [
+            "s3:GetBucketLocation",
+            "s3:GetObject",
+            "s3:ListBucket" 
+         ],
+         "Resource": [
+            "arn:aws:s3:::YOUR-BUCKET-HERE",
+            "arn:aws:s3:::YOUR-BUCKET-HERE/*"
+         ]
+      },
+      {
+         "Effect": "Allow",
+         "Action": [
+            "s3:GetBucketLocation",
+            "s3:GetObject",
+            "s3:ListBucket",
+            "s3:PutObject",
+            "s3:GetBucketAcl"
+         ],
+         "Resource": [
+            "arn:aws:s3:::YOUR-BUCKET-HERE",
+            "arn:aws:s3:::YOUR-BUCKET-HERE/*"
+         ]
+      },
+      {
+         "Effect": "Allow",
+         "Action": [
+            "ec2:ModifySnapshotAttribute",
+            "ec2:CopySnapshot",
+            "ec2:RegisterImage",
+            "ec2:Describe*"
+         ],
+         "Resource": "*"
+      }
+   ]
+}
+```
+Then run the following command:
+`aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-document "file://role-policy.json"`
+
+### Create AMI
+Now that we have a role with the required permission to import an image, let's import the image.
+1. Create a file named `containers.json` to describe the containers with the following content:
+   * Attention to `YOUR-BUCKET-HERE`. This is where your image was uploaded to.
+   * Also, `YOUR-VM-KEY-HERE` is the key you used to upload the image.
+```
+[
+  {
+    "Description": "My Server OVA",
+    "Format": "ova",
+    "UserBucket": {
+        "S3Bucket": "YOUR-BUCKET-HERE",
+        "S3Key": "YOUR-VM-KEY-HERE"
+    }
+  }
+]
+```
+
+2. Now run the following command:
+`aws ec2 import-image --description "SOME DESCRIPTION TO YOUR AMI" --disk-containers "file://containers.json"`
+   * This should output informations about the importing task containing the `ImportTaskId`. Use the `ImportTaskId` to check the status of the importing running the following command: `aws ec2 describe-import-image-tasks --import-task-ids YOUR-IMPORT-TASK-ID-HERE`
+
+## Creating an EC2 instance using the imported image
+You can do that using the console. I will write the steps to do that using the CLI later.
+
+
 [split invocation]: https://www.gnu.org/software/coreutils/manual/html_node/split-invocation.html#split-invocation
 [s3 multipart upload]: https://aws.amazon.com/blogs/aws/amazon-s3-multipart-upload/
+[import-image]: https://docs.aws.amazon.com/vm-import/latest/userguide/vmimport-image-import.html#import-image-prereqs
